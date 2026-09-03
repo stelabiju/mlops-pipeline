@@ -32,7 +32,10 @@ pipeline {
                     
                     ./sonar-scanner-7.0.2.4839-linux-x64/bin/sonar-scanner \
                       -Dsonar.host.url=http://54.242.195.227:9000 \
-                      -Dsonar.token=$SONAR_TOKEN
+                      -Dsonar.login=$SONAR_TOKEN \
+                      -Dsonar.projectKey=iris-mlops-api \
+                      -Dsonar.projectName=iris-mlops-api \
+                      -Dsonar.sources=.
                     '''
                 }
             }
