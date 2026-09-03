@@ -28,10 +28,10 @@ pipeline {
                     sh '''
                     apt-get update && apt-get install -y unzip wget
                     wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-7.0.2.4839-linux-x64.zip
-                    unzip -q sonar-scanner-cli-7.0.2.4839-linux-x64.zip
+                    unzip -o -q sonar-scanner-cli-7.0.2.4839-linux-x64.zip
                     
                     ./sonar-scanner-7.0.2.4839-linux-x64/bin/sonar-scanner \
-                      -Dsonar.host.url=http://http://54.242.195.227:9000/
+                      -Dsonar.host.url=http://54.242.195.227:9000 \
                       -Dsonar.token=$SONAR_TOKEN
                     '''
                 }
