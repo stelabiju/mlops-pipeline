@@ -31,7 +31,7 @@ pipeline {
                     unzip -q sonar-scanner-cli-7.0.2.4839-linux-x64.zip
                     
                     ./sonar-scanner-7.0.2.4839-linux-x64/bin/sonar-scanner \
-                      -Dsonar.host.url=https://your-sonarqube-server.com \
+                      -Dsonar.host.url=http://http://54.242.195.227:9000/
                       -Dsonar.token=$SONAR_TOKEN
                     '''
                 }
