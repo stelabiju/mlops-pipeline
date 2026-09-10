@@ -85,12 +85,16 @@ pipeline {
                 )]) {
 
                     sh '''
-                    git config user.email "jenkins@localhost"
-                    git config user.name "Jenkins"
+                    apt-get update && apt-get install -y git
+
+                    cd "$WORKSPACE"
+
+                    git config --global user.email "jenkins@localhost"
+                    git config --global user.name "Jenkins"
 
                     sed -i "s|image: stelabiju/iris-mlops-api:.*|image: stelabiju/iris-mlops-api:${BUILD_NUMBER}|" k8s/deployment.yaml
 
-                    git add deployment.yaml
+                    git add k8s/deployment.yaml
 
                     git commit -m "Update image to ${BUILD_NUMBER}" || echo "No changes to commit"
 
