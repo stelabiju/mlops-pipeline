@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-mlops-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: iris-mlops-api
+  template:
+    metadata:
+      labels:
+        app: iris-mlops-api
+    spec:
+      containers:
+        - name: iris-mlops-api
+          image: stelabiju/iris-mlops-api:1
+          ports:
+            - containerPort: 8000
