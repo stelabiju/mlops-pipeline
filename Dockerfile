@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files and MLflow tracking data
 COPY app.py .
 COPY mlruns/ ./mlruns/
+COPY mlflow.db .
 
 # Expose FastAPI default port
 EXPOSE 8000
