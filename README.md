@@ -1,8 +1,10 @@
 # End-to-End MLOps Pipeline — Iris Classification
 
-An end-to-end MLOps project for Iris classification using **Random Forest**, **MLflow**, **FastAPI**, **Docker**, **Jenkins**, **Kubernetes**, and **Argo CD**.
+An end-to-end MLOps project for Iris classification using **Random Forest, MLflow, FastAPI, Docker, GitHub Actions, Jenkins, Kubernetes, Argo CD, and Evidently**.
 
-The project demonstrates the complete machine learning lifecycle — from model training and experiment tracking to containerization, CI/CD, GitOps deployment, data drift detection, and automated retraining.
+The project demonstrates the machine learning lifecycle from model training and experiment tracking to model serving, containerization, CI/CD, deployment, data drift detection, and automated retraining.
+
+---
 
 ## 🚀 Project Overview
 
@@ -23,15 +25,11 @@ FastAPI Prediction API
      ↓
 Docker Container
      ↓
-Jenkins CI/CD
+GitHub Actions
      ↓
 Docker Hub
      ↓
-GitHub
-     ↓
-Argo CD
-     ↓
-Kubernetes / Minikube
+EC2 Deployment
      ↓
 Data Drift Monitoring
      ↓
@@ -40,24 +38,32 @@ Automated Retraining
 MLflow Model Registry
 ```
 
+The project also contains a separate Jenkins + Kubernetes + Argo CD GitOps deployment setup.
+
+---
+
 ## 🛠️ Technologies Used
 
-| Technology | Purpose |
-|---|---|
-| Python | Application and ML development |
-| Scikit-learn | Iris dataset and Random Forest model |
-| MLflow | Experiment tracking and model registry |
-| FastAPI | Model serving API |
-| Docker | Application containerization |
-| Jenkins | CI/CD pipeline |
-| SonarQube | Code quality analysis |
-| Docker Hub | Container image registry |
-| Kubernetes | Application deployment |
-| Minikube | Local Kubernetes cluster |
-| Argo CD | GitOps continuous deployment |
-| Evidently | Data drift report generation |
-| SciPy | Statistical drift detection |
-| GitHub | Source code and deployment manifest management |
+| Technology     | Purpose                                |
+| -------------- | -------------------------------------- |
+| Python         | Application and ML development         |
+| Scikit-learn   | Iris dataset and Random Forest model   |
+| MLflow         | Experiment tracking and model registry |
+| FastAPI        | Model serving API                      |
+| Docker         | Application containerization           |
+| GitHub Actions | Automated CI/CD                        |
+| Docker Hub     | Container image registry               |
+| AWS EC2        | Remote Docker deployment               |
+| Jenkins        | CI/CD and GitOps pipeline              |
+| SonarQube      | Code quality analysis                  |
+| Kubernetes     | Application deployment                 |
+| Minikube       | Local Kubernetes cluster               |
+| Argo CD        | GitOps continuous deployment           |
+| Evidently      | Data drift report generation           |
+| SciPy          | Statistical drift detection            |
+| GitHub         | Source code and deployment management  |
+
+---
 
 ## 📁 Project Structure
 
@@ -65,7 +71,7 @@ MLflow Model Registry
 mlops-pipeline/
 │
 ├── .github/
-│   └── workflow/
+│   └── workflows/
 │       └── deploy.yml
 │
 ├── k8s/
@@ -79,6 +85,10 @@ mlops-pipeline/
 │   ├── monitor_drift.py
 │   └── retrain_pipeline.py
 │
+├── tests/
+│   ├── test_app.py
+│   └── test_retrain.py
+│
 ├── app.py
 ├── train.py
 ├── Dockerfile
@@ -88,22 +98,24 @@ mlops-pipeline/
 └── drift_report.html
 ```
 
-The current repository contains Kubernetes manifests under `k8s/`, the monitoring and retraining scripts under `src/`, and the generated Evidently report at the project root.
+The repository contains the FastAPI application, MLflow tracking data, monitoring and retraining scripts, tests, Docker configuration, CI/CD workflows, and Kubernetes manifests.
 
-## 1. Model Training
+---
+
+# 1. Model Training
 
 The initial model is trained using the Iris dataset and a **Random Forest Classifier**.
 
 The training script:
 
-- Loads the Iris dataset using Scikit-learn
-- Splits the data into training and testing sets
-- Trains a Random Forest model
-- Calculates accuracy
-- Logs parameters and metrics to MLflow
-- Registers the trained model as `IrisRandomForest`
+* Loads the Iris dataset using Scikit-learn
+* Splits the data into training and testing sets
+* Trains a Random Forest model
+* Calculates accuracy
+* Logs parameters and metrics to MLflow
+* Registers the trained model with MLflow
 
-The current training configuration uses:
+### Training configuration
 
 ```text
 n_estimators = 50
@@ -117,89 +129,274 @@ The experiment is stored under:
 iris_classification
 ```
 
-The model is registered in MLflow as:
-
-```text
-IrisRandomForest
-```
-
-
-
 ### Run training
 
 ```bash
 python train.py
 ```
 
-## 2. MLflow Experiment Tracking
+---
+
+# 2. MLflow Experiment Tracking
 
 MLflow is used to track model training experiments and manage model versions.
 
 The pipeline records:
 
-- Model parameters
-- Accuracy
-- Training runs
-- Model artifacts
-- Registered model versions
+* Model parameters
+* Accuracy
+* Training runs
+* Model artifacts
+* Registered model versions
 
-Start the MLflow UI with:
+Start the MLflow UI:
 
 ```bash
 mlflow ui
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:5000
 ```
 
-The project also contains MLflow tracking data in the `mlruns/` directory and an `mlflow.db` database.
+The project also contains MLflow tracking data in:
 
-## 3. FastAPI Model Serving
+```text
+mlruns/
+```
+
+and the MLflow database:
+
+```text
+mlflow.db
+```
+
+---
+
+# 3. FastAPI Model Serving
 
 The trained model is served through a **FastAPI** application.
 
-The API provides a prediction endpoint for Iris classification.
+The API provides prediction and health-check endpoints.
 
-Run the API locally with:
+### Run the API locally
 
 ```bash
 uvicorn app:app --reload
 ```
 
-The interactive API documentation is available at:
+Interactive API documentation:
 
 ```text
 http://localhost:8000/docs
 ```
 
-## 4. Dockerization
+### Health endpoint
+
+```text
+GET /health
+```
+
+### Prediction endpoint
+
+```text
+POST /predict
+```
+
+Example request:
+
+```json
+{
+  "sepal_length": 5.1,
+  "sepal_width": 3.5,
+  "petal_length": 1.4,
+  "petal_width": 0.2
+}
+```
+
+Example response:
+
+```json
+{
+  "prediction": 0
+}
+```
+
+---
+
+# 4. Dockerization
 
 The FastAPI application is containerized using Docker.
 
-Build the image:
+### Build the image
 
 ```bash
 docker build -t stelabiju/iris-mlops-api .
 ```
 
-Run the container:
+### Run the container
 
 ```bash
-docker run -p 8000:8000 stelabiju/iris-mlops-api
+docker run -d -p 8000:8000 --name iris-api-test stelabiju/iris-mlops-api
 ```
 
-The application can then be accessed through:
+The application is then available at:
 
 ```text
 http://localhost:8000
 ```
 
-## 5. CI/CD with Jenkins
+The Docker image contains the FastAPI application together with the MLflow database and model tracking artifacts required by the application.
 
-Jenkins automates the application build and deployment workflow.
+---
+
+# 5. Testing
+
+The project contains automated tests under:
+
+```text
+tests/
+```
+
+Run the tests locally:
+
+```bash
+python -m pytest tests/
+```
+
+The test suite covers the FastAPI application and retraining functionality.
+
+---
+
+# 6. CI/CD with GitHub Actions
+
+GitHub Actions is used to automate testing, Docker image creation, publishing, and deployment.
+
+The workflow is located under:
+
+```text
+.github/workflows/deploy.yml
+```
+
+### GitHub Actions workflow
+
+```text
+GitHub Push
+     ↓
+Set up Python
+     ↓
+Install Dependencies
+     ↓
+Run Tests
+     ↓
+Docker Login
+     ↓
+Build Docker Image
+     ↓
+Push Image to Docker Hub
+     ↓
+SSH into AWS EC2
+     ↓
+Pull Docker Image
+     ↓
+Stop Existing Container
+     ↓
+Remove Existing Container
+     ↓
+Run New Container
+```
+
+The workflow runs automatically when changes are pushed to the `main` branch.
+
+---
+
+## 7. Docker Hub
+
+After successful testing, GitHub Actions builds the Docker image and pushes it to Docker Hub.
+
+Image:
+
+```text
+stelabiju/iris-mlops-api:latest
+```
+
+The Docker Hub credentials are stored securely in GitHub Actions repository secrets.
+
+Required secrets:
+
+```text
+DOCKER_USERNAME
+DOCKER_PASSWORD
+```
+
+`DOCKER_PASSWORD` contains the Docker Hub Personal Access Token.
+
+Credentials are not stored directly in the workflow file.
+
+---
+
+# 8. AWS EC2 Deployment
+
+The GitHub Actions workflow deploys the Docker container to a remote **AWS EC2 Linux instance** using SSH.
+
+The EC2 instance requires:
+
+* Running EC2 instance
+* Public IPv4 address
+* SSH access on port 22
+* Docker installed and running
+* User configured to run Docker commands
+
+The workflow connects to the EC2 instance and executes:
+
+```bash
+docker pull stelabiju/iris-mlops-api:latest
+docker stop iris-api || true
+docker rm iris-api || true
+docker run -d -p 8000:8000 --name iris-api stelabiju/iris-mlops-api:latest
+```
+
+### GitHub Actions EC2 secrets
+
+```text
+VM_HOST
+VM_USER
+VM_SSH_KEY
+```
+
+Where:
+
+* `VM_HOST` = EC2 public IPv4 address
+* `VM_USER` = Linux SSH username
+* `VM_SSH_KEY` = private SSH key used to connect to EC2
+
+The private key is stored securely as a GitHub Actions secret.
+
+### Deployment flow
+
+```text
+GitHub
+   ↓
+GitHub Actions
+   ↓
+Docker Hub
+   ↓
+SSH
+   ↓
+AWS EC2
+   ↓
+Docker Container
+   ↓
+FastAPI
+```
+
+---
+
+# 9. CI/CD with Jenkins
+
+The project also contains a Jenkins-based CI/CD and GitOps deployment setup.
 
 The Jenkins pipeline performs:
 
@@ -219,11 +416,13 @@ Update Kubernetes Manifest
 Git Push
 ```
 
-The pipeline uses the Docker image:
+The Jenkins pipeline uses:
 
 ```text
 stelabiju/iris-mlops-api:<BUILD_NUMBER>
 ```
+
+as the Docker image tag.
 
 After a successful Docker build, Jenkins pushes the image to Docker Hub.
 
@@ -233,13 +432,15 @@ Jenkins then updates:
 k8s/deployment.yaml
 ```
 
-with the new Docker image tag and pushes the updated Kubernetes manifest back to GitHub.
+with the new image tag and pushes the updated Kubernetes manifest to GitHub.
 
-## 6. GitOps Deployment with Argo CD
+---
+
+# 10. GitOps Deployment with Argo CD
 
 Argo CD monitors the Kubernetes configuration stored in GitHub.
 
-The deployment flow is:
+The Jenkins-based GitOps deployment flow is:
 
 ```text
 Jenkins
@@ -252,19 +453,27 @@ GitHub
    ↓
 Argo CD
    ↓
-Minikube
+Kubernetes / Minikube
 ```
 
-When Jenkins updates the image tag in `k8s/deployment.yaml`, Argo CD detects the Git change and synchronizes the Kubernetes deployment.
+When Jenkins updates the image tag in:
+
+```text
+k8s/deployment.yaml
+```
+
+Argo CD detects the Git change and synchronizes the Kubernetes deployment.
 
 This separates:
 
-- **CI** — building and testing the application
-- **CD/GitOps** — deploying the desired Kubernetes state from Git
+* **CI** — building and testing the application
+* **CD/GitOps** — deploying the desired Kubernetes state from Git
 
-## 7. Kubernetes Deployment
+---
 
-The application is deployed to Kubernetes using:
+# 11. Kubernetes Deployment
+
+The application can be deployed to Kubernetes using:
 
 ```text
 k8s/deployment.yaml
@@ -289,15 +498,17 @@ Check the services:
 kubectl get services
 ```
 
-The application is deployed to a local **Minikube** Kubernetes cluster.
+The Kubernetes setup uses a local **Minikube** cluster.
 
-## 8. Data Drift Monitoring
+---
+
+# 12. Data Drift Monitoring
 
 The project includes a data drift monitoring component using:
 
-- Evidently
-- SciPy Kolmogorov-Smirnov test
-- Scikit-learn Iris dataset
+* Evidently
+* SciPy Kolmogorov-Smirnov test
+* Scikit-learn Iris dataset
 
 The monitoring script is:
 
@@ -329,7 +540,7 @@ p-value < 0.05
 
 as the threshold for an individual feature.
 
-Dataset-level drift is declared when **at least 50% of the feature columns are detected as drifted**.
+Dataset-level drift is declared when at least **50% of the feature columns** are detected as drifted.
 
 ### Run drift monitoring
 
@@ -337,17 +548,17 @@ Dataset-level drift is declared when **at least 50% of the feature columns are d
 python src/monitor_drift.py
 ```
 
-The script generates:
+This generates:
 
 ```text
 drift_report.html
 ```
 
-The generated report is included in the repository.
+---
 
-## 9. Automated Retraining
+# 13. Automated Retraining
 
-When data drift is detected, the retraining pipeline automatically trains a new Random Forest model.
+When data drift is detected, the retraining pipeline trains a new Random Forest model.
 
 The script is:
 
@@ -355,7 +566,7 @@ The script is:
 src/retrain_pipeline.py
 ```
 
-The workflow is:
+### Workflow
 
 ```text
 Check Drift
@@ -365,26 +576,26 @@ Drift Detected?
  No        Yes
  ↓          ↓
 Stop     Retrain Model
-            ↓
+             ↓
        Evaluate Accuracy
-            ↓
-       Log to MLflow
-            ↓
-       Register Model
+             ↓
+        Log to MLflow
+             ↓
+        Register Model
 ```
 
 The retraining process:
 
-- Checks for data drift
-- Loads the Iris dataset
-- Splits the data
-- Trains a Random Forest classifier
-- Calculates accuracy
-- Logs the drift trigger to MLflow
-- Logs the accuracy
-- Registers the new model version as `IrisRandomForest`
+* Checks for data drift
+* Loads the Iris dataset
+* Splits the data
+* Trains a Random Forest classifier
+* Calculates accuracy
+* Logs the drift trigger to MLflow
+* Logs the accuracy
+* Registers the new model version
 
-The retraining configuration currently uses:
+### Retraining configuration
 
 ```text
 n_estimators = 100
@@ -392,9 +603,7 @@ max_depth = 5
 random_state = 42
 ```
 
-
-
-### Run the retraining pipeline
+### Run retraining
 
 ```bash
 python src/retrain_pipeline.py
@@ -416,7 +625,9 @@ No significant drift detected.
 Retraining skipped.
 ```
 
-## 10. Dependencies
+---
+
+# 14. Dependencies
 
 The project dependencies include:
 
@@ -429,9 +640,8 @@ mlflow
 pydantic
 evidently
 requests
+pytest
 ```
-
-
 
 Install them with:
 
@@ -439,110 +649,129 @@ Install them with:
 pip install -r requirements.txt
 ```
 
-## 🔄 Complete MLOps Workflow
+---
 
-The complete system can be summarized as:
+# 🔄 Complete MLOps Workflow
+
+The current automated deployment workflow is:
 
 ```text
-                ┌─────────────────┐
-                │   Iris Dataset  │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │  Model Training │
-                │ Random Forest   │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     MLflow      │
-                │ Tracking +      │
-                │ Model Registry  │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     FastAPI     │
-                │ Prediction API  │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     Docker      │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     Jenkins     │
-                │ CI/CD Pipeline  │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │    Docker Hub   │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     GitHub      │
-                │ deployment.yaml │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │     Argo CD     │
-                │     GitOps      │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │    Kubernetes   │
-                │    Minikube     │
-                └────────┬────────┘
-                         ↓
-                ┌─────────────────┐
-                │  Drift Monitor  │
-                │ KS + Evidently  │
-                └────────┬────────┘
-                         ↓
-                    Drift Found?
-                     ↙       ↘
-                   No         Yes
-                   ↓           ↓
-                 Continue   Retrain
-                               ↓
+                 ┌─────────────────┐
+                 │   Iris Dataset  │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │  Model Training │
+                 │ Random Forest   │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │     MLflow      │
+                 │ Tracking +      │
+                 │ Model Registry  │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │     FastAPI     │
+                 │ Prediction API  │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │     Docker      │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │ GitHub Actions  │
+                 │ CI/CD Pipeline  │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │    Docker Hub   │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │    AWS EC2      │
+                 │ Docker Deploy   │
+                 └────────┬────────┘
+                          ↓
+                 ┌─────────────────┐
+                 │  Drift Monitor  │
+                 │ KS + Evidently  │
+                 └────────┬────────┘
+                          ↓
+                     Drift Found?
+                      ↙       ↘
+                    No         Yes
+                    ↓           ↓
+                 Continue    Retrain
+                                ↓
                          MLflow Registry
 ```
 
-## 🎯 Key MLOps Concepts Demonstrated
+The repository also contains a separate Jenkins + Kubernetes + Argo CD GitOps implementation:
 
-- **Experiment Tracking** — MLflow
-- **Model Versioning** — MLflow Model Registry
-- **Model Serving** — FastAPI
-- **Containerization** — Docker
-- **Continuous Integration** — Jenkins
-- **Code Quality** — SonarQube
-- **Container Registry** — Docker Hub
-- **Kubernetes Deployment** — Minikube
-- **GitOps** — Argo CD
-- **Data Drift Detection** — KS test + Evidently
-- **Continuous Training** — Automated retraining after drift detection
+```text
+Jenkins
+   ↓
+Docker Hub
+   ↓
+GitHub
+   ↓
+Argo CD
+   ↓
+Kubernetes / Minikube
+```
 
-## 📌 Project Status
+---
+
+# 🎯 Key MLOps Concepts Demonstrated
+
+* **Model Training** — Scikit-learn Random Forest
+* **Experiment Tracking** — MLflow
+* **Model Versioning** — MLflow Model Registry
+* **Model Serving** — FastAPI
+* **Containerization** — Docker
+* **Continuous Integration** — GitHub Actions / Jenkins
+* **Code Quality** — SonarQube
+* **Container Registry** — Docker Hub
+* **Cloud Deployment** — AWS EC2
+* **Kubernetes Deployment** — Minikube
+* **GitOps** — Argo CD
+* **Data Drift Detection** — KS test + Evidently
+* **Continuous Training** — Automated retraining after drift detection
+
+---
+
+# 📌 Project Status
 
 ### Completed
 
-- Iris Random Forest model training
-- MLflow experiment tracking
-- MLflow model registration
-- FastAPI prediction API
-- Docker containerization
-- Jenkins CI/CD pipeline
-- SonarQube analysis
-- Docker Hub image publishing
-- Kubernetes deployment
-- Argo CD GitOps synchronization
-- Data drift detection
-- Evidently HTML drift report
-- Automated retraining pipeline
+* Iris Random Forest model training
+* MLflow experiment tracking
+* MLflow model registration
+* FastAPI prediction API
+* Automated API tests
+* Docker containerization
+* GitHub Actions CI/CD
+* Docker Hub image publishing
+* AWS EC2 Docker deployment
+* Jenkins CI/CD pipeline
+* SonarQube analysis
+* Kubernetes deployment
+* Argo CD GitOps synchronization
+* Data drift detection
+* Evidently HTML drift report
+* Automated retraining pipeline
+
+---
 
 ## 👩‍💻 Author
 
 **Stella Biju**
 
 GitHub: [@stelabiju](https://github.com/stelabiju)
+
+---
 
 ## 📄 License
 
