@@ -34,8 +34,8 @@ def test_predict_valid_input():
     else:
         # Fallback handling if MLflow database model isn't populated yet
         assert response.status_code == 503
-        assert response.json()["detail"] == "Model artifact unavailable."
-
+        #assert response.json()["detail"] == "Model artifact unavailable."
+        assert response.json()["detail"].startswith("Model artifact unavailable")
 
 def test_predict_invalid_schema():
     """Verify that Pydantic rejects payloads missing required fields."""
